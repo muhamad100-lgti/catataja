@@ -11,6 +11,7 @@ import {
   PieChart,
   Calendar,
   Upload,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSync } from '../context/SyncContext';
@@ -33,6 +34,7 @@ interface DashboardViewProps {
   onOpenExportImport: (tab: 'export' | 'import') => void;
   onNavigateToTab: (tab: 'beranda' | 'transaksi' | 'matriks' | 'ai' | 'sync') => void;
   onSelectTransaction: (tx: Transaction) => void;
+  onAskMonthlySpending: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -43,6 +45,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenExportImport,
   onNavigateToTab,
   onSelectTransaction,
+  onAskMonthlySpending,
 }) => {
   const { theme } = useTheme();
   const { transactions } = useSync();
@@ -191,6 +194,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </button>
       </div>
+
+      {/* Quick AI Inquiry: Apa saja yang telah dihabiskan selama bulan ini? */}
+      <button
+        type="button"
+        onClick={onAskMonthlySpending}
+        className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2 group ${
+          theme === 'dark'
+            ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/40'
+            : 'bg-white border-slate-200 hover:border-emerald-300 shadow-2xs'
+        }`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate">
+              Tanya AI: Apa saja yang dihabiskan bulan ini?
+            </span>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+              {summary.totalExpense > 0
+                ? `Total ${formatRupiah(summary.totalExpense)} — klik untuk rincian per kategori & item`
+                : 'Klik untuk cek rekap rincian pengeluaran bulan ini bersama AI'}
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+      </button>
 
       {/* Month-over-Month Comparison Alert Widget */}
       <button

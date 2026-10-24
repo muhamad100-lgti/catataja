@@ -34,6 +34,7 @@ function MainApp() {
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
   const [isExportImportOpen, setIsExportImportOpen] = useState<boolean>(false);
   const [exportImportInitialTab, setExportImportInitialTab] = useState<'export' | 'import'>('export');
+  const [initialAIQuestion, setInitialAIQuestion] = useState<string | null>(null);
 
   // Recommendations for notification drawer
   const recommendations = useMemo(() => {
@@ -70,6 +71,11 @@ function MainApp() {
     setActiveTab('ai');
   };
 
+  const handleAskMonthlySpending = () => {
+    setInitialAIQuestion('Apa saja yang telah dihabiskan selama bulan ini?');
+    setActiveTab('ai');
+  };
+
   return (
     <AndroidFrame>
       {/* Top Header */}
@@ -80,7 +86,7 @@ function MainApp() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto pb-32">
+      <main className="flex-1 overflow-y-auto pb-24">
         {activeTab === 'beranda' && (
           <DashboardView
             selectedMonth={selectedMonth}
@@ -90,6 +96,7 @@ function MainApp() {
             onOpenExportImport={handleOpenExportImport}
             onNavigateToTab={setActiveTab}
             onSelectTransaction={(tx) => handleOpenManualAdd(tx)}
+            onAskMonthlySpending={handleAskMonthlySpending}
           />
         )}
 
@@ -107,7 +114,11 @@ function MainApp() {
         )}
 
         {activeTab === 'ai' && (
-          <AIAdvisorView selectedMonth={selectedMonth} />
+          <AIAdvisorView
+            selectedMonth={selectedMonth}
+            initialQuestion={initialAIQuestion}
+            onClearInitialQuestion={() => setInitialAIQuestion(null)}
+          />
         )}
 
         {activeTab === 'sync' && (

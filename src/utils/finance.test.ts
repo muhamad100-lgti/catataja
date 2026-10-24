@@ -242,4 +242,13 @@ test('generateLocalMonthlyAIAnalysis and answerFinancialQuestionLocally work off
   assert.ok(salarySim.includes('Rp 3.000.000'));
   assert.ok(salarySim.includes('Rp 1.800.000'));
   assert.ok(salarySim.includes('Rp 1.200.000'));
+
+  const monthlySpentAnswer = answerFinancialQuestionLocally(
+    'Apa saja yang telah dihabiskan selama bulan ini?',
+    sample,
+    '2026-10'
+  );
+  assert.ok(monthlySpentAnswer.includes('Rp 1.500.000'));
+  assert.ok(monthlySpentAnswer.includes('Makanan & Minuman'));
+  assert.ok(monthlySpentAnswer.includes('QRIS'));
 });

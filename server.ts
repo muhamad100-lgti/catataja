@@ -970,10 +970,21 @@ Format jawaban JSON:
 });
 
 app.post('/api/gemini/chat', async (req, res) => {
-  const { question, monthKey, summary } = req.body || {};
+  const { question, monthKey, summary, transactions: monthTxs } = req.body || {};
   if (!question || typeof question !== 'string') {
     return res.status(400).json({ error: 'Pertanyaan kosong' });
   }
+
+  const expenseItemsList = Array.isArray(monthTxs)
+    ? monthTxs
+        .filter((t: any) => t && t.type === 'expense')
+        .slice(0, 12)
+        .map(
+          (t: any) =>
+            `- ${t.description}: Rp ${Number(t.amount || 0).toLocaleString('id-ID')} (${t.categoryName}, ${String(t.paymentMethod || '').toUpperCase()}, ${t.date})`
+        )
+        .join('\n')
+    : '';
 
   const prompt = `
 Anda adalah AI Penasihat Finansial Pribadi di aplikasi "CatatAja".
@@ -983,10 +994,12 @@ Data keuangan pengguna bulan ${monthKey || 'ini'}:
 - Sisa Kas Bersih: Rp ${Number(summary?.netCashflow || 0).toLocaleString('id-ID')}
 - Rasio Tabungan: ${summary?.savingsRate || 0}%
 - Matriks 50/30/20: Kebutuhan ${summary?.needsPct || 0}%, Keinginan ${summary?.wantsPct || 0}%, Tabungan ${summary?.savingsPct || 0}%
+- Rincian Kategori Pengeluaran: ${JSON.stringify(summary?.categoryExpenses || {})}
+${expenseItemsList ? `- Daftar Item Pengeluaran Bulan Ini:\n${expenseItemsList}` : '- Belum ada item pengeluaran tercatat bulan ini.'}
 
 Pertanyaan Pengguna: "${question}"
 
-Jawab dalam Bahasa Indonesia yang ramah, terstruktur, praktis, dan singkat (maksimal 120 kata).
+Jawab dalam Bahasa Indonesia yang ramah, terstruktur, praktis, dan jelas (maksimal 180 kata). Jika pengguna bertanya apa saja yang telah dihabiskan selama bulan ini, sebutkan total pengeluaran, rincian kategori, dan daftar item pengeluaran di atas.
 Format jawaban harus JSON:
 {
   "answer": "..."

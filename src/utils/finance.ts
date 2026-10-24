@@ -453,6 +453,46 @@ export function generateLocalMonthlyAIAnalysis(
   };
 }
 
+export function getMonthlyExpenseBreakdownText(
+  transactions: Transaction[],
+  monthKey: string
+): string {
+  const summary = calculateMonthlySummary(transactions, monthKey);
+  const expenseTxs = transactions
+    .filter((t) => t.type === 'expense' && t.date.startsWith(monthKey))
+    .sort((a, b) => b.amount - a.amount);
+
+  if (expenseTxs.length === 0) {
+    return `Selama periode **${summary.monthName}**, belum ada pengeluaran yang tercatat (**Total: Rp 0**).\n\nKamu bisa:\n• Mencatat pengeluaran lewat tombol **Suara AI** (misal: *"Beli makan siang 35 ribu pakai QRIS"*).\n• Menekan tombol **Catat Manual** di Beranda.\n• Atau membuka tab **Sync** lalu klik **Muat Simulasi** untuk melihat contoh rincian pengeluaran lengkap.`;
+  }
+
+  const sortedCategories = Object.entries(summary.categoryExpenses).sort(
+    (a, b) => b[1].total - a[1].total
+  );
+
+  const categoryLines = sortedCategories
+    .map(([, cat], idx) => {
+      const pct = summary.totalExpense > 0 ? Math.round((cat.total / summary.totalExpense) * 100) : 0;
+      return `${idx + 1}. **${cat.name}**: ${formatRupiah(cat.total)} (${pct}% · ${cat.count}x transaksi)`;
+    })
+    .join('\n');
+
+  const itemLines = expenseTxs
+    .slice(0, 10)
+    .map(
+      (tx) =>
+        `• **${tx.description}**: ${formatRupiah(tx.amount)} (${tx.categoryName} · ${tx.paymentMethod.toUpperCase()} · ${tx.date})`
+    )
+    .join('\n');
+
+  const moreNote =
+    expenseTxs.length > 10
+      ? `\n*(+${expenseTxs.length - 10} transaksi lainnya di tab Transaksi)*`
+      : '';
+
+  return `Berikut rincian lengkap **apa saja yang telah dihabiskan selama ${summary.monthName}** (Total: **${formatRupiah(summary.totalExpense)}** dari **${expenseTxs.length} transaksi**):\n\n**Rekap Per Kategori:**\n${categoryLines}\n\n**Daftar Item Pengeluaran:**\n${itemLines}${moreNote}\n\n**Evaluasi Alokasi**: Sebesar **${formatRupiah(summary.needsAmount)}** (${summary.needsPct}%) digunakan untuk Kebutuhan Pokok dan **${formatRupiah(summary.wantsAmount)}** (${summary.wantsPct}%) untuk Keinginan/Gaya Hidup.`;
+}
+
 export function answerFinancialQuestionLocally(
   question: string,
   transactions: Transaction[],
@@ -468,7 +508,24 @@ export function answerFinancialQuestionLocally(
   );
   const topCat = sortedCategories[0]?.[1];
 
-  // Check if user asks to simulate a specific income/salary number in their question
+  // 1. Check if user asks what they have spent this month ("apa saja yang telah dihabiskan selama bulan ini", "habis buat apa", "rincian pengeluaran", etc.)
+  if (
+    q.includes('dihabiskan') ||
+    q.includes('habis buat apa') ||
+    q.includes('habis kemana') ||
+    q.includes('habis ke mana') ||
+    q.includes('apa saja yang') ||
+    q.includes('apa aja yang') ||
+    q.includes('rincian pengeluaran') ||
+    q.includes('daftar pengeluaran') ||
+    q.includes('belanja apa saja') ||
+    q.includes('belanja apa aja') ||
+    q.includes('pengeluaran bulan ini')
+  ) {
+    return getMonthlyExpenseBreakdownText(transactions, monthKey);
+  }
+
+  // 2. Check if user asks to simulate a specific income/salary number in their question
   const queriedAmount = parseNumberWords(q);
   if (
     queriedAmount &&
@@ -513,7 +570,7 @@ export function answerFinancialQuestionLocally(
 
   // Default comprehensive diagnostic answer
   if (summary.transactionCount === 0) {
-    return `Halo! Saya **AI Penasihat Finansial CatatAja**. Saat ini saldo periode **${summary.monthName}** masih kosong (Rp 0).\n\nKamu bisa:\n1. Mencatat transaksi lewat **Suara AI** (contoh: *"Beli kopi 25 ribu pakai QRIS"*).\n2. Menanyakan simulasi gaji (contoh: *"Cara atur gaji 6 juta dengan 50/30/20"*).\n3. Memuat data contoh di tab **Sync** untuk melihat analisis grafik lengkap.`;
+    return `Halo! Saya **AI Penasihat Finansial CatatAja**. Saat ini saldo periode **${summary.monthName}** masih kosong (Rp 0).\n\nKamu bisa:\n1. Menanyakan **"Apa saja yang telah dihabiskan bulan ini?"** setelah mencatat transaksi.\n2. Mencatat transaksi lewat **Suara AI** (contoh: *"Beli kopi 25 ribu pakai QRIS"*).\n3. Menanyakan simulasi gaji (contoh: *"Cara atur gaji 6 juta dengan 50/30/20"*).\n4. Memuat data contoh di tab **Sync** untuk melihat analisis grafik lengkap.`;
   }
 
   const trendText =

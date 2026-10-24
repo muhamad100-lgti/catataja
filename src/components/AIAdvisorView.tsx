@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sparkles,
   TrendingDown,
@@ -9,6 +9,7 @@ import {
   Bookmark,
   Send,
   MessageSquare,
+  ReceiptText,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSync } from '../context/SyncContext';
@@ -24,9 +25,12 @@ import {
   AIMonthlyAnalysisResult,
 } from '../utils/finance';
 import { SavingRecommendation } from '../types';
+import { ALL_CATEGORIES } from '../constants/categories';
 
 interface AIAdvisorViewProps {
   selectedMonth: string;
+  initialQuestion?: string | null;
+  onClearInitialQuestion?: () => void;
 }
 
 interface ChatItem {
@@ -36,19 +40,32 @@ interface ChatItem {
 }
 
 const QUICK_PROMPTS = [
-  'Evaluasi rasio 50/30/20 saya',
+  'Apa saja yang telah dihabiskan selama bulan ini?',
   'Apa pos pengeluaran terbesarku?',
+  'Evaluasi rasio 50/30/20 saya',
   'Simulasi bagi gaji 7 juta',
   'Berapa target dana darurat ideal?',
 ];
 
-export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({ selectedMonth }) => {
+export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({
+  selectedMonth,
+  initialQuestion,
+  onClearInitialQuestion,
+}) => {
   const { theme } = useTheme();
   const { transactions } = useSync();
 
   const prevMonthKey = getPreviousMonthKey(selectedMonth);
   const summary = calculateMonthlySummary(transactions, selectedMonth);
   const comparison = compareMonths(transactions, selectedMonth, prevMonthKey);
+
+  const monthExpenseTxs = transactions
+    .filter((t) => t.type === 'expense' && t.date.startsWith(selectedMonth))
+    .sort((a, b) => b.amount - a.amount);
+
+  const sortedExpenseCategories = Object.entries(summary.categoryExpenses).sort(
+    (a, b) => b[1].total - a[1].total
+  );
 
   const [perspectiveIdx, setPerspectiveIdx] = useState<number>(0);
 
@@ -69,6 +86,7 @@ export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({ selectedMonth }) =
   // Interactive AI Consultation Chat State
   const [questionInput, setQuestionInput] = useState<string>('');
   const [isAskingAI, setIsAskingAI] = useState<boolean>(false);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatItem[]>(() => [
     {
       id: 'welcome-ai',
@@ -76,6 +94,12 @@ export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({ selectedMonth }) =
       text: answerFinancialQuestionLocally('ringkasan', transactions, selectedMonth),
     },
   ]);
+
+  useEffect(() => {
+    if (chatHistory.length > 1 && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatHistory]);
 
   // Keep local analysis and recommendations synchronized when transactions or month change
   useEffect(() => {
@@ -94,6 +118,16 @@ export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({ selectedMonth }) =
       return prev;
     });
   }, [transactions, selectedMonth]);
+
+  // Handle initialQuestion passed from Dashboard or other views
+  useEffect(() => {
+    if (initialQuestion && initialQuestion.trim()) {
+      handleAskQuestion(initialQuestion);
+      if (onClearInitialQuestion) {
+        onClearInitialQuestion();
+      }
+    }
+  }, [initialQuestion]);
 
   // Generate automated monthly summary via Gemini API with seamless local fallback (works on GitHub Pages)
   const fetchMonthlySummaryAI = async () => {
@@ -199,7 +233,13 @@ export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({ selectedMonth }) =
     const isStatic =
       host.endsWith('github.io') || host.endsWith('pages.dev') || host.endsWith('netlify.app');
 
-    if (!isStatic) {
+    const isItemizedSpendingQuery =
+      q.toLowerCase().includes('dihabiskan') ||
+      q.toLowerCase().includes('habis buat apa') ||
+      q.toLowerCase().includes('rincian pengeluaran') ||
+      q.toLowerCase().includes('daftar pengeluaran');
+
+    if (!isStatic && !isItemizedSpendingQuery) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 1800);
@@ -211,6 +251,7 @@ export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({ selectedMonth }) =
             question: q,
             monthKey: selectedMonth,
             summary,
+            transactions: transactions.filter((t) => t.date.startsWith(selectedMonth)),
           }),
           signal: controller.signal,
         });
@@ -276,6 +317,245 @@ export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({ selectedMonth }) =
         </button>
       </div>
 
+      {/* Interactive AI Financial Advisor Chat Card */}
+      <div
+        className={`p-4 sm:p-5 rounded-3xl border space-y-3.5 ${
+          theme === 'dark'
+            ? 'bg-slate-900/80 border-slate-800'
+            : 'bg-white border-slate-200 shadow-xs'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                Tanya AI Konsultan Keuangan
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Tanyakan apa saja yang telah dihabiskan bulan ini atau simulasi anggaran
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Featured Inquiry Button: Apa saja yang telah dihabiskan selama bulan ini? */}
+        <button
+          type="button"
+          onClick={() => handleAskQuestion('Apa saja yang telah dihabiskan selama bulan ini?')}
+          disabled={isAskingAI}
+          className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+            theme === 'dark'
+              ? 'bg-emerald-950/35 border-emerald-500/35 hover:border-emerald-400 text-emerald-200'
+              : 'bg-emerald-50/90 border-emerald-200 hover:border-emerald-400 text-emerald-900'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+              <ReceiptText className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold block leading-snug">
+                Apa saja yang telah dihabiskan bulan ini?
+              </span>
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 block truncate">
+                Rekap kategori & daftar pengeluaran {formatMonthLabel(selectedMonth)}
+              </span>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shrink-0">
+            Cek Rincian
+          </span>
+        </button>
+
+        {/* Quick Question Suggestions */}
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_PROMPTS.slice(1).map((promptText) => (
+            <button
+              key={promptText}
+              type="button"
+              onClick={() => handleAskQuestion(promptText)}
+              disabled={isAskingAI}
+              className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium border transition-all cursor-pointer ${
+                theme === 'dark'
+                  ? 'bg-slate-950 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-emerald-400 hover:text-emerald-700'
+              }`}
+            >
+              {promptText}
+            </button>
+          ))}
+        </div>
+
+        {/* Chat Messages Box */}
+        <div
+          ref={chatContainerRef}
+          className={`max-h-80 overflow-y-auto p-3 rounded-2xl border space-y-2.5 ${
+            theme === 'dark'
+              ? 'bg-slate-950/70 border-slate-800/80'
+              : 'bg-slate-50/80 border-slate-200/80'
+          }`}
+        >
+          {chatHistory.map((item) => (
+            <div
+              key={item.id}
+              className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[90%] p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-line ${
+                  item.role === 'user'
+                    ? 'bg-emerald-600 text-white font-medium rounded-br-sm'
+                    : theme === 'dark'
+                    ? 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
+                    : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm shadow-2xs'
+                }`}
+              >
+                {item.text.replace(/\*\*/g, '')}
+              </div>
+            </div>
+          ))}
+          {isAskingAI && (
+            <div className="flex justify-start">
+              <div
+                className={`p-3 rounded-2xl text-xs flex items-center gap-2 ${
+                  theme === 'dark'
+                    ? 'bg-slate-900 border border-slate-800 text-slate-400'
+                    : 'bg-white border border-slate-200 text-slate-500'
+                }`}
+              >
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500" />
+                <span>AI sedang merangkum catatan pengeluaranmu...</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Chat Input Form */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAskQuestion(questionInput);
+          }}
+          className="flex items-center gap-2"
+        >
+          <input
+            type="text"
+            value={questionInput}
+            onChange={(e) => setQuestionInput(e.target.value)}
+            placeholder="Tanya AI: Apa saja yang telah dihabiskan bulan ini?"
+            className={`flex-1 h-10 px-3.5 rounded-xl text-xs border outline-none transition-colors ${
+              theme === 'dark'
+                ? 'bg-slate-950 border-slate-800 text-white focus:border-emerald-500'
+                : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-500'
+            }`}
+          />
+          <button
+            type="submit"
+            disabled={!questionInput.trim() || isAskingAI}
+            aria-label="Kirim pertanyaan ke AI"
+            className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-xs"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Tanya</span>
+          </button>
+        </form>
+      </div>
+
+      {/* Visual Breakdown Card: Rincian Pengeluaran Bulan Ini */}
+      <div
+        className={`p-4 sm:p-5 rounded-3xl border space-y-3 ${
+          theme === 'dark'
+            ? 'bg-slate-900/75 border-slate-800'
+            : 'bg-white border-slate-200 shadow-xs'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ReceiptText className="w-4 h-4 text-emerald-500 shrink-0" />
+            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+              Rekap Pengeluaran Bulan {formatMonthLabel(selectedMonth)}
+            </h3>
+          </div>
+          <span className="text-xs font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
+            {formatRupiah(summary.totalExpense)}
+          </span>
+        </div>
+
+        {monthExpenseTxs.length === 0 ? (
+          <p className="text-xs text-slate-500 dark:text-slate-400 py-2">
+            Belum ada pengeluaran yang tercatat pada bulan {formatMonthLabel(selectedMonth)}.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {/* Category Breakdown Bars */}
+            <div className="space-y-2">
+              {sortedExpenseCategories.map(([catId, catData]) => {
+                const catInfo = ALL_CATEGORIES.find((c) => c.id === catId);
+                const pct =
+                  summary.totalExpense > 0
+                    ? Math.round((catData.total / summary.totalExpense) * 100)
+                    : 0;
+                return (
+                  <div key={catId} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: catInfo?.color || '#10b981' }}
+                        />
+                        <span>{catData.name}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          ({catData.count}x)
+                        </span>
+                      </span>
+                      <span className="font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                        {formatRupiah(catData.total)} ({pct}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.max(4, pct)}%`,
+                          backgroundColor: catInfo?.color || '#10b981',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Itemized List of Top Expenses This Month */}
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                Daftar Item yang Dihabiskan ({monthExpenseTxs.length} Transaksi):
+              </span>
+              {monthExpenseTxs.slice(0, 6).map((tx) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between text-xs py-1 border-b last:border-b-0 border-slate-100 dark:border-slate-800/60"
+                >
+                  <div className="min-w-0 pr-2">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">
+                      {tx.description}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {tx.categoryName} · {tx.paymentMethod.toUpperCase()} · {tx.date}
+                    </span>
+                  </div>
+                  <span className="font-bold text-slate-900 dark:text-slate-100 tabular-nums shrink-0">
+                    {formatRupiah(tx.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Automated Monthly Executive Summary Card */}
       <div
         className={`p-5 rounded-3xl border transition-all ${
@@ -339,122 +619,6 @@ export const AIAdvisorView: React.FC<AIAdvisorViewProps> = ({ selectedMonth }) =
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Interactive AI Financial Advisor Chat Card */}
-      <div
-        className={`p-4 sm:p-5 rounded-3xl border space-y-3.5 ${
-          theme === 'dark'
-            ? 'bg-slate-900/80 border-slate-800'
-            : 'bg-white border-slate-200 shadow-xs'
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
-              <MessageSquare className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                Tanya AI Konsultan Keuangan
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Tanyakan strategi anggaran, simulasi gaji, atau evaluasi pengeluaran
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Question Suggestions */}
-        <div className="flex flex-wrap gap-1.5">
-          {QUICK_PROMPTS.map((promptText) => (
-            <button
-              key={promptText}
-              type="button"
-              onClick={() => handleAskQuestion(promptText)}
-              disabled={isAskingAI}
-              className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium border transition-all cursor-pointer ${
-                theme === 'dark'
-                  ? 'bg-slate-950 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-emerald-400 hover:text-emerald-700'
-              }`}
-            >
-              {promptText}
-            </button>
-          ))}
-        </div>
-
-        {/* Chat Messages Box */}
-        <div
-          className={`max-h-64 overflow-y-auto p-3 rounded-2xl border space-y-2.5 ${
-            theme === 'dark'
-              ? 'bg-slate-950/70 border-slate-800/80'
-              : 'bg-slate-50/80 border-slate-200/80'
-          }`}
-        >
-          {chatHistory.map((item) => (
-            <div
-              key={item.id}
-              className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[88%] p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-line ${
-                  item.role === 'user'
-                    ? 'bg-emerald-600 text-white font-medium rounded-br-sm'
-                    : theme === 'dark'
-                    ? 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
-                    : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm shadow-2xs'
-                }`}
-              >
-                {item.text.replace(/\*\*/g, '')}
-              </div>
-            </div>
-          ))}
-          {isAskingAI && (
-            <div className="flex justify-start">
-              <div
-                className={`p-3 rounded-2xl text-xs flex items-center gap-2 ${
-                  theme === 'dark'
-                    ? 'bg-slate-900 border border-slate-800 text-slate-400'
-                    : 'bg-white border border-slate-200 text-slate-500'
-                }`}
-              >
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500" />
-                <span>AI sedang menghitung analisis...</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Chat Input Form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAskQuestion(questionInput);
-          }}
-          className="flex items-center gap-2"
-        >
-          <input
-            type="text"
-            value={questionInput}
-            onChange={(e) => setQuestionInput(e.target.value)}
-            placeholder="Ketik pertanyaan, misal: Cara atur gaji 6 juta..."
-            className={`flex-1 h-10 px-3.5 rounded-xl text-xs border outline-none transition-colors ${
-              theme === 'dark'
-                ? 'bg-slate-950 border-slate-800 text-white focus:border-emerald-500'
-                : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-500'
-            }`}
-          />
-          <button
-            type="submit"
-            disabled={!questionInput.trim() || isAskingAI}
-            aria-label="Kirim pertanyaan ke AI"
-            className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-xs"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Tanya</span>
-          </button>
-        </form>
       </div>
 
       {/* Savings Opportunities Header & CTA */}

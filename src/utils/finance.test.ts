@@ -118,3 +118,74 @@ test('compareMonths correctly computes differences between two months', () => {
   assert.equal(comp.expenseDiff, 1500000);
   assert.equal(comp.expenseDiffPct, 50); // +50% increase
 });
+
+import {
+  exportTransactionsToJson,
+  exportTransactionsToCsv,
+  parseImportedData,
+} from './dataTransfer';
+
+test('exportTransactionsToJson and parseImportedData round-trip JSON transactions', () => {
+  const sample: Transaction[] = [
+    {
+      id: 'tx-json-1',
+      type: 'income',
+      amount: 8500000,
+      category: 'gaji',
+      categoryName: 'Gaji Utama',
+      description: 'Gaji Oktober',
+      date: '2026-10-01',
+      paymentMethod: 'transfer',
+      classification: 'savings',
+      createdAt: 1000,
+      updatedAt: 1000,
+    },
+    {
+      id: 'tx-json-2',
+      type: 'expense',
+      amount: 35000,
+      category: 'makanan',
+      categoryName: 'Makanan & Minuman',
+      description: 'Bakso Malang',
+      date: '2026-10-02',
+      paymentMethod: 'qris',
+      classification: 'needs',
+      createdAt: 2000,
+      updatedAt: 2000,
+    },
+  ];
+
+  const jsonStr = exportTransactionsToJson(sample, 'catataja-utama');
+  const parsed = parseImportedData(jsonStr);
+  assert.equal(parsed.format, 'json');
+  assert.equal(parsed.transactions.length, 2);
+  assert.equal(parsed.transactions[0].amount, 8500000);
+  assert.equal(parsed.transactions[1].description, 'Bakso Malang');
+});
+
+test('exportTransactionsToCsv and parseImportedData round-trip CSV transactions', () => {
+  const sample: Transaction[] = [
+    {
+      id: 'tx-csv-1',
+      type: 'expense',
+      amount: 25000,
+      category: 'kopi_jajan',
+      categoryName: 'Kopi & Jajan',
+      description: 'Kopi Kenangan, Mall',
+      date: '2026-10-03',
+      paymentMethod: 'qris',
+      classification: 'wants',
+      createdAt: 3000,
+      updatedAt: 3000,
+    },
+  ];
+
+  const csvStr = exportTransactionsToCsv(sample);
+  const parsed = parseImportedData(csvStr);
+  assert.equal(parsed.format, 'csv');
+  assert.equal(parsed.transactions.length, 1);
+  assert.equal(parsed.transactions[0].amount, 25000);
+  assert.equal(parsed.transactions[0].category, 'kopi_jajan');
+  assert.equal(parsed.transactions[0].description, 'Kopi Kenangan, Mall');
+});
+

@@ -16,11 +16,11 @@ export const AndroidFrame: React.FC<AndroidFrameProps> = ({ children }) => {
           : 'bg-slate-100 text-slate-900'
       }`}
     >
-      {/* Centered Android container with smooth borders and clean elevation */}
+      {/* Responsive container: full width on mobile, comfortable max-w-xl on desktop */}
       <div
-        className={`w-full max-w-md min-h-screen flex flex-col relative shadow-2xl transition-colors ${
+        className={`w-full max-w-xl min-h-screen flex flex-col relative shadow-2xl transition-colors ${
           theme === 'dark'
-            ? 'bg-slate-950 border-x border-slate-800/60'
+            ? 'bg-slate-950 border-x border-slate-800/70'
             : 'bg-white border-x border-slate-200'
         }`}
       >

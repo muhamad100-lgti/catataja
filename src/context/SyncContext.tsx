@@ -11,6 +11,7 @@ interface SyncContextType {
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (tx: Transaction) => Promise<void>;
+  importTransactions: (incoming: Transaction[], mode: 'merge' | 'replace') => Promise<number>;
   resetToDemoData: () => Promise<void>;
   loadSimulationData: () => Promise<void>;
 }
@@ -63,13 +64,29 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.ok) {
         const json = await res.json();
         if (Array.isArray(json.transactions)) {
-          setTransactions(json.transactions);
+          if (json.transactions.length > 0) {
+            setTransactions(json.transactions);
+          } else {
+            // If server restarted with empty memory but local cache has transactions, sync local up to server
+            const savedRaw = localStorage.getItem(`${STORAGE_PREFIX}${rId}`);
+            const savedLocal: Transaction[] = savedRaw ? JSON.parse(savedRaw) : [];
+            if (savedLocal.length > 0) {
+              setTransactions(savedLocal);
+              fetch(`/api/sync/${encodeURIComponent(rId)}/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transactions: savedLocal, mode: 'merge' }),
+              }).catch(() => {});
+            } else {
+              setTransactions([]);
+            }
+          }
           setConnectedDevices(Math.max(1, json.activeConnections || 1));
           setLastSyncedAt(new Date());
         }
       }
-    } catch (e) {
-      console.warn('Initial REST sync fallback to local cache', e);
+    } catch {
+      // Offline mode: local cache already loaded
     }
   }, []);
 
@@ -101,8 +118,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (msg.roomId && msg.roomId.toLowerCase() !== roomId.toLowerCase()) return;
 
           if (msg.type === 'init' && Array.isArray(msg.data)) {
-            setTransactions(msg.data);
-            setLastSyncedAt(new Date());
+            if (msg.data.length > 0) {
+              setTransactions(msg.data);
+              setLastSyncedAt(new Date());
+            }
           } else if (msg.type === 'transaction:created' && msg.data) {
             setTransactions((prev) => {
               if (prev.some((t) => t.id === msg.data.id)) return prev;
@@ -126,7 +145,6 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       socket.onclose = () => {
         if (!isMounted) return;
         setSyncStatus('offline');
-        // Auto-reconnect in 3s
         reconnectTimeoutRef.current = setTimeout(connectWs, 3000);
       };
 
@@ -137,7 +155,6 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     connectWs();
 
-    // Heartbeat ping every 25s
     const pingInterval = setInterval(() => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ type: 'ping' }));
@@ -168,7 +185,6 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedAt: Date.now(),
       };
 
-      // Optimistic local update
       setTransactions((prev) => [newTx, ...prev]);
 
       try {
@@ -184,8 +200,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return json.transaction;
           }
         }
-      } catch (err) {
-        console.warn('Network offline, transaction saved locally', err);
+      } catch {
+        // Saved locally
       }
 
       return newTx;
@@ -204,8 +220,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
           body: JSON.stringify(tx),
         });
         setLastSyncedAt(new Date());
-      } catch (err) {
-        console.warn('Network offline, update stored locally', err);
+      } catch {
+        // Saved locally
       }
     },
     [roomId]
@@ -220,14 +236,56 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
           method: 'DELETE',
         });
         setLastSyncedAt(new Date());
-      } catch (err) {
-        console.warn('Network offline, deletion stored locally', err);
+      } catch {
+        // Saved locally
       }
     },
     [roomId]
   );
 
+  const importTransactions = useCallback(
+    async (incoming: Transaction[], mode: 'merge' | 'replace'): Promise<number> => {
+      if (!Array.isArray(incoming) || incoming.length === 0) return 0;
+
+      setTransactions((prev) => {
+        if (mode === 'replace') {
+          return [...incoming].sort((a, b) => b.createdAt - a.createdAt);
+        }
+        const map = new Map<string, Transaction>();
+        for (const existing of prev) {
+          map.set(existing.id, existing);
+        }
+        for (const item of incoming) {
+          map.set(item.id, item);
+        }
+        return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
+      });
+
+      try {
+        const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transactions: incoming, mode }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json.transactions)) {
+            setTransactions(json.transactions);
+            setLastSyncedAt(new Date());
+          }
+        }
+      } catch {
+        // Offline import persisted to localStorage via effect
+      }
+
+      return incoming.length;
+    },
+    [roomId]
+  );
+
   const resetToDemoData = useCallback(async (): Promise<void> => {
+    setTransactions([]);
+    localStorage.setItem(`${STORAGE_PREFIX}${roomId}`, JSON.stringify([]));
     try {
       const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/reset`, {
         method: 'POST',
@@ -239,8 +297,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLastSyncedAt(new Date());
         }
       }
-    } catch (err) {
-      console.warn('Reset error', err);
+    } catch {
+      // Local reset already completed
     }
   }, [roomId]);
 
@@ -256,8 +314,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLastSyncedAt(new Date());
         }
       }
-    } catch (err) {
-      console.warn('Simulation seed error', err);
+    } catch {
+      // Ignore offline seed error
     }
   }, [roomId]);
 
@@ -273,6 +331,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addTransaction,
         updateTransaction,
         deleteTransaction,
+        importTransactions,
         resetToDemoData,
         loadSimulationData,
       }}

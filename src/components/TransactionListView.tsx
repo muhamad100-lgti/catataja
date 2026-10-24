@@ -1,5 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Trash2, Edit2, Plus, Mic, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import {
+  Search,
+  Trash2,
+  Edit2,
+  Plus,
+  Mic,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Download,
+  Upload,
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSync } from '../context/SyncContext';
 import { Transaction, TransactionType } from '../types';
@@ -10,12 +20,14 @@ interface TransactionListViewProps {
   selectedMonth: string;
   onOpenManualModal: (tx?: Transaction) => void;
   onOpenVoiceModal: () => void;
+  onOpenExportImport: (tab: 'export' | 'import') => void;
 }
 
 export const TransactionListView: React.FC<TransactionListViewProps> = ({
   selectedMonth,
   onOpenManualModal,
   onOpenVoiceModal,
+  onOpenExportImport,
 }) => {
   const { theme } = useTheme();
   const { transactions, deleteTransaction } = useSync();
@@ -25,30 +37,25 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
   const [filterCategory, setFilterCategory] = useState<string>('all');
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
-      // Month match
-      if (!t.date.startsWith(selectedMonth)) return false;
+    return transactions
+      .filter((t) => {
+        if (!t.date.startsWith(selectedMonth)) return false;
+        if (filterType !== 'all' && t.type !== filterType) return false;
+        if (filterCategory !== 'all' && t.category !== filterCategory) return false;
 
-      // Type match
-      if (filterType !== 'all' && t.type !== filterType) return false;
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase();
+          const descMatch = t.description.toLowerCase().includes(query);
+          const catMatch = t.categoryName.toLowerCase().includes(query);
+          const amountMatch = t.amount.toString().includes(query);
+          if (!descMatch && !catMatch && !amountMatch) return false;
+        }
 
-      // Category match
-      if (filterCategory !== 'all' && t.category !== filterCategory) return false;
-
-      // Search match
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const descMatch = t.description.toLowerCase().includes(query);
-        const catMatch = t.categoryName.toLowerCase().includes(query);
-        const amountMatch = t.amount.toString().includes(query);
-        if (!descMatch && !catMatch && !amountMatch) return false;
-      }
-
-      return true;
-    }).sort((a, b) => b.createdAt - a.createdAt);
+        return true;
+      })
+      .sort((a, b) => b.createdAt - a.createdAt);
   }, [transactions, selectedMonth, filterType, filterCategory, searchQuery]);
 
-  // Aggregate for current filtered view
   const totalFilteredExpense = filteredTransactions
     .filter((t) => t.type === 'expense')
     .reduce((acc, t) => acc + t.amount, 0);
@@ -59,23 +66,58 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
 
   return (
     <div className="p-4 space-y-4">
-      {/* Top Title & Quick Add */}
-      <div className="flex items-center justify-between">
+      {/* Top Title & Quick Actions */}
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <h2 className="font-bold text-base">Riwayat Transaksi</h2>
-          <p className="text-xs text-slate-400">Periode: {formatMonthLabel(selectedMonth)}</p>
+          <h2 className="font-bold text-base text-slate-900 dark:text-slate-100">
+            Riwayat Transaksi
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Periode: {formatMonthLabel(selectedMonth)}
+          </p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
+            type="button"
+            onClick={() => onOpenExportImport('export')}
+            aria-label="Ekspor Transaksi"
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+              theme === 'dark'
+                ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
+                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+            }`}
+            title="Ekspor JSON / CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Ekspor</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenExportImport('import')}
+            aria-label="Impor Transaksi"
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+              theme === 'dark'
+                ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
+                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+            }`}
+            title="Impor JSON / CSV"
+          >
+            <Upload className="w-3.5 h-3.5 text-blue-500" />
+            <span>Impor</span>
+          </button>
+          <button
+            type="button"
             onClick={onOpenVoiceModal}
-            className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
+            aria-label="Catat Suara"
+            className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
             title="Catat Suara"
           >
             <Mic className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => onOpenManualModal()}
-            className="px-3 py-1.5 rounded-xl bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-emerald-500/30 hover:bg-emerald-600 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm hover:bg-emerald-600 transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Tambah</span>
@@ -100,34 +142,43 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
           />
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
+        {/* Filter Segmented Controls */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
           <button
+            type="button"
             onClick={() => setFilterType('all')}
             className={`px-3 py-1.5 rounded-xl font-semibold shrink-0 transition-all cursor-pointer ${
               filterType === 'all'
-                ? 'bg-emerald-500 text-white shadow-sm'
-                : 'bg-slate-800/40 text-slate-400 hover:text-white'
+                ? 'bg-emerald-500 text-white shadow-xs'
+                : theme === 'dark'
+                ? 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
             }`}
           >
             Semua ({filteredTransactions.length})
           </button>
           <button
+            type="button"
             onClick={() => setFilterType('expense')}
             className={`px-3 py-1.5 rounded-xl font-semibold shrink-0 transition-all cursor-pointer ${
               filterType === 'expense'
-                ? 'bg-rose-500 text-white shadow-sm'
-                : 'bg-slate-800/40 text-slate-400 hover:text-white'
+                ? 'bg-rose-500 text-white shadow-xs'
+                : theme === 'dark'
+                ? 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
             }`}
           >
             Pengeluaran
           </button>
           <button
+            type="button"
             onClick={() => setFilterType('income')}
             className={`px-3 py-1.5 rounded-xl font-semibold shrink-0 transition-all cursor-pointer ${
               filterType === 'income'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-slate-800/40 text-slate-400 hover:text-white'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : theme === 'dark'
+                ? 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
             }`}
           >
             Pemasukan
@@ -161,22 +212,38 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
         }`}
       >
         <div>
-          <span className="text-[10px] text-slate-400 block">Total Pengeluaran Filter:</span>
-          <span className="font-bold text-rose-400">{formatRupiah(totalFilteredExpense)}</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+            Total Pengeluaran Filter:
+          </span>
+          <span className="font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+            {formatRupiah(totalFilteredExpense)}
+          </span>
         </div>
         <div>
-          <span className="text-[10px] text-slate-400 block">Total Pemasukan Filter:</span>
-          <span className="font-bold text-emerald-400">{formatRupiah(totalFilteredIncome)}</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+            Total Pemasukan Filter:
+          </span>
+          <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+            {formatRupiah(totalFilteredIncome)}
+          </span>
         </div>
       </div>
 
       {/* List */}
       <div className="space-y-2">
         {filteredTransactions.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <p className="text-xs font-semibold">Tidak ada transaksi yang cocok</p>
-            <p className="text-[11px] mt-1 text-slate-500">
-              Coba sesuaikan kata kunci pencarian atau ubah filter
+          <div
+            className={`text-center py-10 px-4 rounded-2xl border ${
+              theme === 'dark'
+                ? 'bg-slate-900/30 border-slate-800 text-slate-400'
+                : 'bg-slate-50 border-slate-200 text-slate-500'
+            }`}
+          >
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              Tidak ada transaksi yang cocok
+            </p>
+            <p className="text-[11px] mt-1 text-slate-500 dark:text-slate-400">
+              Tambahkan transaksi baru atau impor data backup JSON/CSV Anda.
             </p>
           </div>
         ) : (
@@ -188,10 +255,10 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
                 className={`p-3 rounded-2xl border transition-all flex items-center justify-between group ${
                   theme === 'dark'
                     ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
+                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0"
                     style={{ backgroundColor: cat?.color || '#64748b' }}
@@ -202,46 +269,50 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
                       <ArrowUpRight className="w-5 h-5 text-rose-100" />
                     )}
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-100 block line-clamp-1">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate">
                       {tx.description}
                     </span>
-                    <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                       <span>{tx.categoryName}</span>
-                      <span>•</span>
+                      <span aria-hidden="true">·</span>
                       <span>{tx.date}</span>
-                      <span>•</span>
+                      <span aria-hidden="true">·</span>
                       <span className="uppercase font-semibold">{tx.paymentMethod}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 ml-2">
                   <div className="text-right">
                     <span
-                      className={`text-xs font-bold block ${
-                        tx.type === 'income' ? 'text-emerald-400' : 'text-slate-100'
+                      className={`text-xs font-bold block tabular-nums ${
+                        tx.type === 'income'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-slate-900 dark:text-slate-100'
                       }`}
                     >
                       {tx.type === 'income' ? '+' : '-'} {formatRupiah(tx.amount)}
                     </span>
-                    <span className="text-[9px] text-slate-400 uppercase font-semibold">
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-semibold">
                       {tx.classification}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1">
                     <button
+                      type="button"
                       onClick={() => onOpenManualModal(tx)}
-                      aria-label="Edit transaksi"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800 cursor-pointer"
+                      aria-label={`Edit ${tx.description}`}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => deleteTransaction(tx.id)}
-                      aria-label="Hapus transaksi"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
+                      aria-label={`Hapus ${tx.description}`}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

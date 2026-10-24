@@ -225,7 +225,7 @@ const app = express();
 const server = http.createServer(app);
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // Initialize Google GenAI
 const ai = new GoogleGenAI({
@@ -665,6 +665,65 @@ app.post('/api/sync/:roomId/seed', (req, res) => {
   });
 
   res.json({ success: true, message: 'Data simulasi berhasil dimuat', transactions: room.transactions });
+});
+
+app.post('/api/sync/:roomId/import', (req, res) => {
+  const roomId = (req.params.roomId || 'default').trim().toLowerCase();
+  const { transactions: incomingTx, mode = 'merge' } = req.body || {};
+
+  if (!Array.isArray(incomingTx)) {
+    return res.status(400).json({ error: 'Format data transaksi tidak valid' });
+  }
+
+  const room = getRoomData(roomId);
+  const validIncoming: Transaction[] = incomingTx
+    .filter((t: any) => t && typeof t.amount === 'number' && t.amount > 0 && t.id)
+    .map((t: any) => ({
+      id: String(t.id),
+      type: t.type === 'income' ? 'income' : 'expense',
+      amount: Math.round(Number(t.amount)),
+      category: String(t.category || 'lainnya_keluar'),
+      categoryName: String(t.categoryName || 'Lainnya'),
+      description: String(t.description || 'Transaksi Impor'),
+      date: String(t.date || new Date().toISOString().split('T')[0]),
+      paymentMethod: ['tunai', 'qris', 'transfer', 'kartu'].includes(t.paymentMethod)
+        ? t.paymentMethod
+        : 'qris',
+      classification: ['needs', 'wants', 'savings'].includes(t.classification)
+        ? t.classification
+        : 'needs',
+      createdAt: Number(t.createdAt) || Date.now(),
+      updatedAt: Date.now(),
+    }));
+
+  if (mode === 'replace') {
+    room.transactions = validIncoming.sort((a, b) => b.createdAt - a.createdAt);
+  } else {
+    const map = new Map<string, Transaction>();
+    for (const existing of room.transactions) {
+      map.set(existing.id, existing);
+    }
+    for (const item of validIncoming) {
+      map.set(item.id, item);
+    }
+    room.transactions = Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  room.lastUpdated = Date.now();
+
+  broadcastToRoom(roomId, {
+    type: 'init',
+    roomId,
+    data: room.transactions,
+    timestamp: Date.now(),
+  });
+
+  res.json({
+    success: true,
+    importedCount: validIncoming.length,
+    totalCount: room.transactions.length,
+    transactions: room.transactions,
+  });
 });
 
 // AI Endpoints powered by Gemini API with deterministic local fallback

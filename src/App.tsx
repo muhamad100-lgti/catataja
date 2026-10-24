@@ -17,6 +17,7 @@ import { SyncView } from './components/SyncView';
 import { VoiceInputModal } from './components/VoiceInputModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { NotificationDrawer } from './components/NotificationDrawer';
+import { ExportImportModal } from './components/ExportImportModal';
 import { getCurrentMonthKey, generateSavingRecommendations } from './utils/finance';
 import { Transaction, SavingRecommendation } from './types';
 
@@ -31,6 +32,8 @@ function MainApp() {
   const [isManualModalOpen, setIsManualModalOpen] = useState<boolean>(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
+  const [isExportImportOpen, setIsExportImportOpen] = useState<boolean>(false);
+  const [exportImportInitialTab, setExportImportInitialTab] = useState<'export' | 'import'>('export');
 
   // Recommendations for notification drawer
   const recommendations = useMemo(() => {
@@ -46,6 +49,11 @@ function MainApp() {
     setIsManualModalOpen(true);
   };
 
+  const handleOpenExportImport = (tab: 'export' | 'import' = 'export') => {
+    setExportImportInitialTab(tab);
+    setIsExportImportOpen(true);
+  };
+
   const handleSaveTransaction = async (txData: any) => {
     if (editingTransaction) {
       await updateTransaction({
@@ -58,7 +66,7 @@ function MainApp() {
     }
   };
 
-  const handleSelectRecommendation = (rec: SavingRecommendation) => {
+  const handleSelectRecommendation = (_rec: SavingRecommendation) => {
     setActiveTab('ai');
   };
 
@@ -67,17 +75,19 @@ function MainApp() {
       {/* Top Header */}
       <TopHeader
         onOpenNotifications={() => setIsNotificationOpen(true)}
+        onOpenExportImport={() => handleOpenExportImport('export')}
         unreadCount={recommendations.length}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto pb-6">
+      <main className="flex-1 overflow-y-auto pb-32">
         {activeTab === 'beranda' && (
           <DashboardView
             selectedMonth={selectedMonth}
             onChangeMonth={setSelectedMonth}
             onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
             onOpenManualModal={() => handleOpenManualAdd()}
+            onOpenExportImport={handleOpenExportImport}
             onNavigateToTab={setActiveTab}
             onSelectTransaction={(tx) => handleOpenManualAdd(tx)}
           />
@@ -88,6 +98,7 @@ function MainApp() {
             selectedMonth={selectedMonth}
             onOpenManualModal={handleOpenManualAdd}
             onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
+            onOpenExportImport={handleOpenExportImport}
           />
         )}
 
@@ -99,7 +110,9 @@ function MainApp() {
           <AIAdvisorView selectedMonth={selectedMonth} />
         )}
 
-        {activeTab === 'sync' && <SyncView />}
+        {activeTab === 'sync' && (
+          <SyncView onOpenExportImport={handleOpenExportImport} />
+        )}
       </main>
 
       {/* Bottom Android Navigation */}
@@ -126,6 +139,13 @@ function MainApp() {
         }}
         onSave={handleSaveTransaction}
         initialData={editingTransaction}
+      />
+
+      {/* Export & Import Data Modal */}
+      <ExportImportModal
+        isOpen={isExportImportOpen}
+        onClose={() => setIsExportImportOpen(false)}
+        initialTab={exportImportInitialTab}
       />
 
       {/* Notification Center */}

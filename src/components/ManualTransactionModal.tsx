@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Plus, Calendar, CreditCard, Tag } from 'lucide-react';
+import { X, Check, Calendar, CreditCard, Tag } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../constants/categories';
 import { Transaction, TransactionType, PaymentMethod, BudgetClassification } from '../types';
@@ -57,7 +57,6 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
     }
   }, [initialData, isOpen]);
 
-  // Sync category default classification
   const handleCategoryChange = (newCatId: string) => {
     setCategory(newCatId);
     const catList = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
@@ -101,7 +100,7 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
   const numAmount = parseFloat(amount.replace(/[^0-9]/g, '')) || 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
       <div
         className={`w-full max-w-md max-h-[92vh] flex flex-col rounded-t-[32px] sm:rounded-3xl border shadow-2xl overflow-hidden transition-all ${
           theme === 'dark'
@@ -110,32 +109,45 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
         }`}
       >
         {/* Header */}
-        <div className="px-6 pt-5 pb-3 flex items-center justify-between border-b border-slate-800/40">
-          <div className="flex items-center gap-2">
-            <h2 className="font-bold text-base">
-              {initialData ? 'Ubah Transaksi' : 'Tambah Transaksi Manual'}
-            </h2>
-          </div>
+        <div
+          className={`px-5 py-4 flex items-center justify-between border-b ${
+            theme === 'dark' ? 'border-slate-800' : 'border-slate-200'
+          }`}
+        >
+          <h2 className="font-bold text-base">
+            {initialData ? 'Ubah Transaksi' : 'Tambah Transaksi Manual'}
+          </h2>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Tutup"
-            className="p-1.5 rounded-full hover:bg-slate-800/50 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+              theme === 'dark'
+                ? 'hover:bg-slate-800 text-slate-400 hover:text-white'
+                : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4">
           {/* Income vs Expense Toggle */}
-          <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-800/50 dark:bg-slate-950 border border-slate-700/60">
+          <div
+            className={`grid grid-cols-2 p-1 rounded-2xl border ${
+              theme === 'dark'
+                ? 'bg-slate-950 border-slate-800'
+                : 'bg-slate-100 border-slate-200'
+            }`}
+          >
             <button
               type="button"
               onClick={() => handleTypeChange('expense')}
               className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 type === 'expense'
-                  ? 'bg-rose-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-rose-500 text-white shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Pengeluaran (-)
@@ -145,8 +157,8 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
               onClick={() => handleTypeChange('income')}
               className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 type === 'income'
-                  ? 'bg-emerald-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Pemasukan (+)
@@ -155,7 +167,7 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
 
           {/* Amount input */}
           <div>
-            <label className="text-xs text-slate-400 font-semibold block mb-1">
+            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold block mb-1">
               Nominal (Rp)
             </label>
             <div className="relative">
@@ -170,7 +182,7 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className={`w-full pl-12 pr-4 py-3 rounded-2xl text-lg font-bold border transition-colors ${
+                className={`w-full pl-11 pr-4 py-3 rounded-2xl text-lg font-bold border transition-colors ${
                   theme === 'dark'
                     ? 'bg-slate-950 border-slate-700 text-white focus:border-emerald-500'
                     : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-500'
@@ -178,7 +190,7 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
               />
             </div>
             {numAmount > 0 && (
-              <span className="text-xs text-emerald-400 font-semibold mt-1 block">
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1 block tabular-nums">
                 {formatRupiah(numAmount)}
               </span>
             )}
@@ -186,7 +198,7 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
 
           {/* Category selection */}
           <div>
-            <label className="text-xs text-slate-400 font-semibold block mb-1 flex items-center gap-1.5">
+            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold block mb-1.5 flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5" />
               <span>Kategori</span>
             </label>
@@ -198,8 +210,10 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
                   onClick={() => handleCategoryChange(cat.id)}
                   className={`p-2.5 rounded-xl text-xs font-medium text-left border transition-all cursor-pointer flex items-center gap-2 ${
                     category === cat.id
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold'
-                      : 'border-slate-800 bg-slate-800/30 text-slate-300 hover:border-slate-700'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold'
+                      : theme === 'dark'
+                      ? 'border-slate-800 bg-slate-800/30 text-slate-300 hover:border-slate-700'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300'
                   }`}
                 >
                   <span
@@ -214,7 +228,7 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
 
           {/* Description */}
           <div>
-            <label className="text-xs text-slate-400 font-semibold block mb-1">
+            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold block mb-1">
               Keterangan / Catatan
             </label>
             <input
@@ -226,14 +240,14 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
                 theme === 'dark'
                   ? 'bg-slate-950 border-slate-700 text-white'
                   : 'bg-slate-50 border-slate-300 text-slate-900'
-              } outline-none`}
+              } outline-none focus:border-emerald-500`}
             />
           </div>
 
           {/* Date & Payment Method */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400 font-semibold block mb-1 flex items-center gap-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold block mb-1 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
                 <span>Tanggal</span>
               </label>
@@ -251,9 +265,9 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 font-semibold block mb-1 flex items-center gap-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold block mb-1 flex items-center gap-1">
                 <CreditCard className="w-3 h-3" />
-                <span>Metode Pembayaran</span>
+                <span>Pembayaran</span>
               </label>
               <select
                 value={paymentMethod}
@@ -275,7 +289,7 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
           {/* 50/30/20 Classification */}
           {type === 'expense' && (
             <div>
-              <label className="text-xs text-slate-400 font-semibold block mb-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold block mb-1">
                 Klasifikasi Matriks 50/30/20
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -284,8 +298,10 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
                   onClick={() => setClassification('needs')}
                   className={`py-2 px-1 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer text-center ${
                     classification === 'needs'
-                      ? 'border-blue-500 bg-blue-500/10 text-blue-400'
-                      : 'border-slate-800 text-slate-400'
+                      ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                      : theme === 'dark'
+                      ? 'border-slate-800 text-slate-400'
+                      : 'border-slate-200 text-slate-600'
                   }`}
                 >
                   Kebutuhan (50%)
@@ -295,8 +311,10 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
                   onClick={() => setClassification('wants')}
                   className={`py-2 px-1 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer text-center ${
                     classification === 'wants'
-                      ? 'border-purple-500 bg-purple-500/10 text-purple-400'
-                      : 'border-slate-800 text-slate-400'
+                      ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                      : theme === 'dark'
+                      ? 'border-slate-800 text-slate-400'
+                      : 'border-slate-200 text-slate-600'
                   }`}
                 >
                   Keinginan (30%)
@@ -306,8 +324,10 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
                   onClick={() => setClassification('savings')}
                   className={`py-2 px-1 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer text-center ${
                     classification === 'savings'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                      : 'border-slate-800 text-slate-400'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : theme === 'dark'
+                      ? 'border-slate-800 text-slate-400'
+                      : 'border-slate-200 text-slate-600'
                   }`}
                 >
                   Tabungan (20%)
@@ -321,14 +341,18 @@ export const ManualTransactionModal: React.FC<ManualTransactionModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+              className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs transition-colors cursor-pointer ${
+                theme === 'dark'
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={numAmount <= 0}
-              className="flex-2 py-3 px-4 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+              className="flex-2 py-3 px-4 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Check className="w-4 h-4" />
               <span>{initialData ? 'Simpan Perubahan' : 'Tambah Transaksi'}</span>

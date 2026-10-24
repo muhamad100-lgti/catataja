@@ -237,7 +237,7 @@ const ai = new GoogleGenAI({
   },
 });
 
-const GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash'] as const;
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-2.5-flash'] as const;
 const modelCooldownUntil: Record<string, number> = {};
 
 async function generateJsonWithFallback<T>(prompt: string, timeoutMs = 4000): Promise<T | null> {
@@ -967,6 +967,38 @@ Format jawaban JSON:
     classification: localParsed.classification,
     confidence: localParsed.confidence,
   });
+});
+
+app.post('/api/gemini/chat', async (req, res) => {
+  const { question, monthKey, summary } = req.body || {};
+  if (!question || typeof question !== 'string') {
+    return res.status(400).json({ error: 'Pertanyaan kosong' });
+  }
+
+  const prompt = `
+Anda adalah AI Penasihat Finansial Pribadi di aplikasi "CatatAja".
+Data keuangan pengguna bulan ${monthKey || 'ini'}:
+- Pemasukan: Rp ${Number(summary?.totalIncome || 0).toLocaleString('id-ID')}
+- Pengeluaran: Rp ${Number(summary?.totalExpense || 0).toLocaleString('id-ID')}
+- Sisa Kas Bersih: Rp ${Number(summary?.netCashflow || 0).toLocaleString('id-ID')}
+- Rasio Tabungan: ${summary?.savingsRate || 0}%
+- Matriks 50/30/20: Kebutuhan ${summary?.needsPct || 0}%, Keinginan ${summary?.wantsPct || 0}%, Tabungan ${summary?.savingsPct || 0}%
+
+Pertanyaan Pengguna: "${question}"
+
+Jawab dalam Bahasa Indonesia yang ramah, terstruktur, praktis, dan singkat (maksimal 120 kata).
+Format jawaban harus JSON:
+{
+  "answer": "..."
+}
+`;
+
+  const parsed = await generateJsonWithFallback<{ answer: string }>(prompt, 3500);
+  if (parsed && typeof parsed.answer === 'string' && parsed.answer.trim()) {
+    return res.json({ answer: parsed.answer.trim() });
+  }
+
+  return res.status(200).json({ answer: null });
 });
 
 // Vite middleware in dev or static files in production

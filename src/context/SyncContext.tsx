@@ -21,13 +21,212 @@ const SyncContext = createContext<SyncContextType | null>(null);
 const DEFAULT_ROOM = 'catataja-utama';
 const STORAGE_PREFIX = 'catataja_tx_';
 
+function buildLocalSeedTransactions(): Transaction[] {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevY = prevDate.getFullYear();
+  const prevM = String(prevDate.getMonth() + 1).padStart(2, '0');
+
+  return [
+    {
+      id: 'tx-cur-1',
+      type: 'income',
+      amount: 9500000,
+      category: 'gaji',
+      categoryName: 'Gaji Utama',
+      description: 'Gaji Bulan Ini PT Tech Inovasi',
+      date: `${y}-${m}-01`,
+      paymentMethod: 'transfer',
+      classification: 'savings',
+      createdAt: Date.now() - 86400000 * 20,
+      updatedAt: Date.now() - 86400000 * 20,
+    },
+    {
+      id: 'tx-cur-2',
+      type: 'income',
+      amount: 1500000,
+      category: 'freelance',
+      categoryName: 'Freelance & Side Job',
+      description: 'Desain UI Mobile App Klien',
+      date: `${y}-${m}-05`,
+      paymentMethod: 'transfer',
+      classification: 'savings',
+      createdAt: Date.now() - 86400000 * 16,
+      updatedAt: Date.now() - 86400000 * 16,
+    },
+    {
+      id: 'tx-cur-3',
+      type: 'expense',
+      amount: 1800000,
+      category: 'tagihan',
+      categoryName: 'Tagihan & Utilitas',
+      description: 'Sewa Kost & Listrik Bulanan',
+      date: `${y}-${m}-02`,
+      paymentMethod: 'transfer',
+      classification: 'needs',
+      createdAt: Date.now() - 86400000 * 19,
+      updatedAt: Date.now() - 86400000 * 19,
+    },
+    {
+      id: 'tx-cur-4',
+      type: 'expense',
+      amount: 1250000,
+      category: 'makanan',
+      categoryName: 'Makanan & Minuman',
+      description: 'Belanja Bahan Makanan & Supermarket',
+      date: `${y}-${m}-06`,
+      paymentMethod: 'qris',
+      classification: 'needs',
+      createdAt: Date.now() - 86400000 * 15,
+      updatedAt: Date.now() - 86400000 * 15,
+    },
+    {
+      id: 'tx-cur-5',
+      type: 'expense',
+      amount: 420000,
+      category: 'kopi_jajan',
+      categoryName: 'Kopi & Jajan',
+      description: 'Kopi Susu & Pastry Mingguan',
+      date: `${y}-${m}-08`,
+      paymentMethod: 'qris',
+      classification: 'wants',
+      createdAt: Date.now() - 86400000 * 13,
+      updatedAt: Date.now() - 86400000 * 13,
+    },
+    {
+      id: 'tx-cur-6',
+      type: 'expense',
+      amount: 350000,
+      category: 'transport',
+      categoryName: 'Transportasi & Bensin',
+      description: 'Isi Bensin Pertamax & Saldo E-Toll',
+      date: `${y}-${m}-10`,
+      paymentMethod: 'qris',
+      classification: 'needs',
+      createdAt: Date.now() - 86400000 * 11,
+      updatedAt: Date.now() - 86400000 * 11,
+    },
+    {
+      id: 'tx-cur-7',
+      type: 'expense',
+      amount: 650000,
+      category: 'belanja',
+      categoryName: 'Belanja & Lifestyle',
+      description: 'Beli Sepatu Olahraga Promo',
+      date: `${y}-${m}-14`,
+      paymentMethod: 'kartu',
+      classification: 'wants',
+      createdAt: Date.now() - 86400000 * 7,
+      updatedAt: Date.now() - 86400000 * 7,
+    },
+    {
+      id: 'tx-cur-8',
+      type: 'expense',
+      amount: 189000,
+      category: 'hiburan',
+      categoryName: 'Hiburan & Streaming',
+      description: 'Langganan Netflix Premium & Spotify',
+      date: `${y}-${m}-16`,
+      paymentMethod: 'kartu',
+      classification: 'wants',
+      createdAt: Date.now() - 86400000 * 5,
+      updatedAt: Date.now() - 86400000 * 5,
+    },
+    {
+      id: 'tx-prev-1',
+      type: 'income',
+      amount: 9000000,
+      category: 'gaji',
+      categoryName: 'Gaji Utama',
+      description: 'Gaji Bulan Kemarin',
+      date: `${prevY}-${prevM}-01`,
+      paymentMethod: 'transfer',
+      classification: 'savings',
+      createdAt: Date.now() - 86400000 * 50,
+      updatedAt: Date.now() - 86400000 * 50,
+    },
+    {
+      id: 'tx-prev-2',
+      type: 'expense',
+      amount: 1800000,
+      category: 'tagihan',
+      categoryName: 'Tagihan & Utilitas',
+      description: 'Sewa Kost & Listrik Bulan Lalu',
+      date: `${prevY}-${prevM}-02`,
+      paymentMethod: 'transfer',
+      classification: 'needs',
+      createdAt: Date.now() - 86400000 * 49,
+      updatedAt: Date.now() - 86400000 * 49,
+    },
+    {
+      id: 'tx-prev-3',
+      type: 'expense',
+      amount: 1600000,
+      category: 'makanan',
+      categoryName: 'Makanan & Minuman',
+      description: 'Makan & Resto Bulan Lalu',
+      date: `${prevY}-${prevM}-12`,
+      paymentMethod: 'qris',
+      classification: 'needs',
+      createdAt: Date.now() - 86400000 * 40,
+      updatedAt: Date.now() - 86400000 * 40,
+    },
+    {
+      id: 'tx-prev-4',
+      type: 'expense',
+      amount: 580000,
+      category: 'kopi_jajan',
+      categoryName: 'Kopi & Jajan',
+      description: 'Kopi Kedai & Nongkrong',
+      date: `${prevY}-${prevM}-18`,
+      paymentMethod: 'qris',
+      classification: 'wants',
+      createdAt: Date.now() - 86400000 * 35,
+      updatedAt: Date.now() - 86400000 * 35,
+    },
+    {
+      id: 'tx-prev-5',
+      type: 'expense',
+      amount: 400000,
+      category: 'transport',
+      categoryName: 'Transportasi & Bensin',
+      description: 'Bensin & Ojol Bulan Lalu',
+      date: `${prevY}-${prevM}-20`,
+      paymentMethod: 'tunai',
+      classification: 'needs',
+      createdAt: Date.now() - 86400000 * 33,
+      updatedAt: Date.now() - 86400000 * 33,
+    },
+    {
+      id: 'tx-prev-6',
+      type: 'expense',
+      amount: 900000,
+      category: 'belanja',
+      categoryName: 'Belanja & Lifestyle',
+      description: 'Baju & Aksesoris',
+      date: `${prevY}-${prevM}-25`,
+      paymentMethod: 'kartu',
+      classification: 'wants',
+      createdAt: Date.now() - 86400000 * 28,
+      updatedAt: Date.now() - 86400000 * 28,
+    },
+  ];
+}
+
+function isStaticHostEnvironment(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  return host.endsWith('github.io') || host.endsWith('pages.dev') || host.endsWith('netlify.app');
+}
+
 export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [roomId, setRoomId] = useState<string>(() => {
     return localStorage.getItem('catataja_room_id') || DEFAULT_ROOM;
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    // Clear old initial mock data if present so user starts fresh with Rp 0
     if (localStorage.getItem('catataja_mock_cleared') !== 'v3') {
       try {
         localStorage.removeItem(`${STORAGE_PREFIX}catataja-utama`);
@@ -44,7 +243,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  const [syncStatus, setSyncStatus] = useState<'connected' | 'connecting' | 'offline'>('connecting');
+  const [syncStatus, setSyncStatus] = useState<'connected' | 'connecting' | 'offline'>(() =>
+    isStaticHostEnvironment() ? 'offline' : 'connecting'
+  );
   const [connectedDevices, setConnectedDevices] = useState<number>(1);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
@@ -59,15 +260,23 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // REST initial fetch
   const fetchRoomData = useCallback(async (rId: string) => {
+    if (isStaticHostEnvironment()) {
+      const savedRaw = localStorage.getItem(`${STORAGE_PREFIX}${rId}`);
+      const savedLocal: Transaction[] = savedRaw ? JSON.parse(savedRaw) : [];
+      setTransactions(savedLocal);
+      setSyncStatus('offline');
+      return;
+    }
+
     try {
       const res = await fetch(`/api/sync/${encodeURIComponent(rId)}`);
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const json = await res.json();
         if (Array.isArray(json.transactions)) {
           if (json.transactions.length > 0) {
             setTransactions(json.transactions);
           } else {
-            // If server restarted with empty memory but local cache has transactions, sync local up to server
             const savedRaw = localStorage.getItem(`${STORAGE_PREFIX}${rId}`);
             const savedLocal: Transaction[] = savedRaw ? JSON.parse(savedRaw) : [];
             if (savedLocal.length > 0) {
@@ -84,73 +293,90 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setConnectedDevices(Math.max(1, json.activeConnections || 1));
           setLastSyncedAt(new Date());
         }
+      } else {
+        setSyncStatus('offline');
       }
     } catch {
-      // Offline mode: local cache already loaded
+      setSyncStatus('offline');
     }
   }, []);
 
   // WebSocket real-time connection
   useEffect(() => {
     let isMounted = true;
+    let failCount = 0;
     fetchRoomData(roomId);
 
+    if (isStaticHostEnvironment()) {
+      return;
+    }
+
     function connectWs() {
-      if (!isMounted) return;
-      setSyncStatus('connecting');
+      if (!isMounted || failCount >= 3) return;
+      if (failCount === 0) {
+        setSyncStatus('connecting');
+      }
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws?roomId=${encodeURIComponent(roomId)}`;
 
-      const socket = new WebSocket(wsUrl);
-      wsRef.current = socket;
+      try {
+        const socket = new WebSocket(wsUrl);
+        wsRef.current = socket;
 
-      socket.onopen = () => {
-        if (!isMounted) return;
-        setSyncStatus('connected');
-        setLastSyncedAt(new Date());
-      };
+        socket.onopen = () => {
+          if (!isMounted) return;
+          failCount = 0;
+          setSyncStatus('connected');
+          setLastSyncedAt(new Date());
+        };
 
-      socket.onmessage = (event) => {
-        if (!isMounted) return;
-        try {
-          const msg: SyncMessage = JSON.parse(event.data);
-          if (msg.roomId && msg.roomId.toLowerCase() !== roomId.toLowerCase()) return;
+        socket.onmessage = (event) => {
+          if (!isMounted) return;
+          try {
+            const msg: SyncMessage = JSON.parse(event.data);
+            if (msg.roomId && msg.roomId.toLowerCase() !== roomId.toLowerCase()) return;
 
-          if (msg.type === 'init' && Array.isArray(msg.data)) {
-            if (msg.data.length > 0) {
-              setTransactions(msg.data);
+            if (msg.type === 'init' && Array.isArray(msg.data)) {
+              if (msg.data.length > 0) {
+                setTransactions(msg.data);
+                setLastSyncedAt(new Date());
+              }
+            } else if (msg.type === 'transaction:created' && msg.data) {
+              setTransactions((prev) => {
+                if (prev.some((t) => t.id === msg.data.id)) return prev;
+                return [msg.data, ...prev];
+              });
+              setLastSyncedAt(new Date());
+            } else if (msg.type === 'transaction:updated' && msg.data) {
+              setTransactions((prev) =>
+                prev.map((t) => (t.id === msg.data.id ? msg.data : t))
+              );
+              setLastSyncedAt(new Date());
+            } else if (msg.type === 'transaction:deleted' && msg.data?.id) {
+              setTransactions((prev) => prev.filter((t) => t.id !== msg.data.id));
               setLastSyncedAt(new Date());
             }
-          } else if (msg.type === 'transaction:created' && msg.data) {
-            setTransactions((prev) => {
-              if (prev.some((t) => t.id === msg.data.id)) return prev;
-              return [msg.data, ...prev];
-            });
-            setLastSyncedAt(new Date());
-          } else if (msg.type === 'transaction:updated' && msg.data) {
-            setTransactions((prev) =>
-              prev.map((t) => (t.id === msg.data.id ? msg.data : t))
-            );
-            setLastSyncedAt(new Date());
-          } else if (msg.type === 'transaction:deleted' && msg.data?.id) {
-            setTransactions((prev) => prev.filter((t) => t.id !== msg.data.id));
-            setLastSyncedAt(new Date());
+          } catch {
+            // ignore malformed WS frames
           }
-        } catch (e) {
-          console.error('Error handling WebSocket message', e);
-        }
-      };
+        };
 
-      socket.onclose = () => {
-        if (!isMounted) return;
+        socket.onclose = () => {
+          if (!isMounted) return;
+          failCount += 1;
+          setSyncStatus('offline');
+          if (failCount < 3) {
+            reconnectTimeoutRef.current = setTimeout(connectWs, 5000);
+          }
+        };
+
+        socket.onerror = () => {
+          socket.close();
+        };
+      } catch {
         setSyncStatus('offline');
-        reconnectTimeoutRef.current = setTimeout(connectWs, 3000);
-      };
-
-      socket.onerror = () => {
-        socket.close();
-      };
+      }
     }
 
     connectWs();
@@ -174,6 +400,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const switchRoom = useCallback((newRoomId: string) => {
     const cleanId = (newRoomId || DEFAULT_ROOM).trim().toLowerCase();
     setRoomId(cleanId);
+    try {
+      const saved = localStorage.getItem(`${STORAGE_PREFIX}${cleanId}`);
+      setTransactions(saved ? JSON.parse(saved) : []);
+    } catch {
+      setTransactions([]);
+    }
   }, []);
 
   const addTransaction = useCallback(
@@ -187,21 +419,24 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setTransactions((prev) => [newTx, ...prev]);
 
-      try {
-        const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/transaction`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newTx),
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.transaction) {
-            setLastSyncedAt(new Date());
-            return json.transaction;
+      if (!isStaticHostEnvironment()) {
+        try {
+          const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/transaction`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newTx),
+          });
+          const contentType = res.headers.get('content-type') || '';
+          if (res.ok && contentType.includes('application/json')) {
+            const json = await res.json();
+            if (json.transaction) {
+              setLastSyncedAt(new Date());
+              return json.transaction;
+            }
           }
+        } catch {
+          // Saved locally
         }
-      } catch {
-        // Saved locally
       }
 
       return newTx;
@@ -213,15 +448,17 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async (tx: Transaction): Promise<void> => {
       setTransactions((prev) => prev.map((t) => (t.id === tx.id ? tx : t)));
 
-      try {
-        await fetch(`/api/sync/${encodeURIComponent(roomId)}/transaction`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(tx),
-        });
-        setLastSyncedAt(new Date());
-      } catch {
-        // Saved locally
+      if (!isStaticHostEnvironment()) {
+        try {
+          await fetch(`/api/sync/${encodeURIComponent(roomId)}/transaction`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(tx),
+          });
+          setLastSyncedAt(new Date());
+        } catch {
+          // Saved locally
+        }
       }
     },
     [roomId]
@@ -231,13 +468,15 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async (id: string): Promise<void> => {
       setTransactions((prev) => prev.filter((t) => t.id !== id));
 
-      try {
-        await fetch(`/api/sync/${encodeURIComponent(roomId)}/transaction/${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-        });
-        setLastSyncedAt(new Date());
-      } catch {
-        // Saved locally
+      if (!isStaticHostEnvironment()) {
+        try {
+          await fetch(`/api/sync/${encodeURIComponent(roomId)}/transaction/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+          });
+          setLastSyncedAt(new Date());
+        } catch {
+          // Saved locally
+        }
       }
     },
     [roomId]
@@ -261,21 +500,24 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
       });
 
-      try {
-        const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/import`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transactions: incoming, mode }),
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (Array.isArray(json.transactions)) {
-            setTransactions(json.transactions);
-            setLastSyncedAt(new Date());
+      if (!isStaticHostEnvironment()) {
+        try {
+          const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transactions: incoming, mode }),
+          });
+          const contentType = res.headers.get('content-type') || '';
+          if (res.ok && contentType.includes('application/json')) {
+            const json = await res.json();
+            if (Array.isArray(json.transactions)) {
+              setTransactions(json.transactions);
+              setLastSyncedAt(new Date());
+            }
           }
+        } catch {
+          // Offline import persisted to localStorage via effect
         }
-      } catch {
-        // Offline import persisted to localStorage via effect
       }
 
       return incoming.length;
@@ -286,36 +528,47 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetToDemoData = useCallback(async (): Promise<void> => {
     setTransactions([]);
     localStorage.setItem(`${STORAGE_PREFIX}${roomId}`, JSON.stringify([]));
-    try {
-      const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/reset`, {
-        method: 'POST',
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.transactions) {
-          setTransactions(json.transactions);
-          setLastSyncedAt(new Date());
+    if (!isStaticHostEnvironment()) {
+      try {
+        const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/reset`, {
+          method: 'POST',
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          const json = await res.json();
+          if (json.transactions) {
+            setTransactions(json.transactions);
+            setLastSyncedAt(new Date());
+          }
         }
+      } catch {
+        // Local reset already completed
       }
-    } catch {
-      // Local reset already completed
     }
   }, [roomId]);
 
   const loadSimulationData = useCallback(async (): Promise<void> => {
-    try {
-      const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/seed`, {
-        method: 'POST',
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.transactions) {
-          setTransactions(json.transactions);
-          setLastSyncedAt(new Date());
+    // 1. Immediately apply local seed transactions so it works 100% on GitHub Pages & offline
+    const localSeeds = buildLocalSeedTransactions();
+    setTransactions(localSeeds);
+    localStorage.setItem(`${STORAGE_PREFIX}${roomId}`, JSON.stringify(localSeeds));
+
+    if (!isStaticHostEnvironment()) {
+      try {
+        const res = await fetch(`/api/sync/${encodeURIComponent(roomId)}/seed`, {
+          method: 'POST',
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          const json = await res.json();
+          if (Array.isArray(json.transactions) && json.transactions.length > 0) {
+            setTransactions(json.transactions);
+            setLastSyncedAt(new Date());
+          }
         }
+      } catch {
+        // Local seed already loaded
       }
-    } catch {
-      // Ignore offline seed error
     }
   }, [roomId]);
 

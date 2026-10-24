@@ -136,13 +136,9 @@ export const SyncView: React.FC<SyncViewProps> = ({ onOpenExportImport }) => {
       {/* Sync Status Grand Card */}
       <div
         className={`p-5 rounded-3xl border transition-all ${
-          syncStatus === 'connected'
-            ? theme === 'dark'
-              ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900 to-slate-950 border-emerald-500/30'
-              : 'bg-emerald-50/70 border-emerald-200'
-            : theme === 'dark'
-            ? 'bg-slate-900/60 border-slate-800'
-            : 'bg-slate-100 border-slate-200'
+          theme === 'dark'
+            ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900 to-slate-950 border-emerald-500/30'
+            : 'bg-emerald-50/70 border-emerald-200'
         }`}
       >
         <div
@@ -151,20 +147,22 @@ export const SyncView: React.FC<SyncViewProps> = ({ onOpenExportImport }) => {
           }`}
         >
           <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block animate-pulse"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block"></span>
             <div>
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
-                {syncStatus === 'connected' ? 'WebSocket Real-Time Aktif' : 'Status Koneksi'}
+                {syncStatus === 'connected'
+                  ? 'Sinkronisasi Real-Time Aktif'
+                  : 'Penyimpanan Lokal Aktif (Offline-First)'}
               </span>
               <span className="text-[10px] text-slate-500 dark:text-slate-400">
                 {lastSyncedAt
-                  ? `Terakhir sinkron: ${lastSyncedAt.toLocaleTimeString('id-ID')}`
-                  : 'Siap sinkron'}
+                  ? `Terakhir diperbarui: ${lastSyncedAt.toLocaleTimeString('id-ID')}`
+                  : 'Tersimpan otomatis di perangkat'}
               </span>
             </div>
           </div>
 
-          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
             <Radio className="w-3.5 h-3.5" />
             <span>{connectedDevices} Perangkat</span>
           </span>

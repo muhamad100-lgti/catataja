@@ -13,7 +13,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useSync } from '../context/SyncContext';
 import { Transaction, TransactionType } from '../types';
-import { formatRupiah, formatMonthLabel } from '../utils/finance';
+import { formatRupiah, formatMonthLabel, formatClassificationLabel } from '../utils/finance';
 import { ALL_CATEGORIES } from '../constants/categories';
 
 interface TransactionListViewProps {
@@ -65,59 +65,32 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
     .reduce((acc, t) => acc + t.amount, 0);
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Top Title & Quick Actions */}
+    <div className="p-4 sm:p-5 space-y-4">
+      {/* Top Title & Primary Actions (uncluttered single row) */}
       <div className="flex items-center justify-between gap-2">
-        <div>
-          <h2 className="font-bold text-base text-slate-900 dark:text-slate-100">
+        <div className="min-w-0">
+          <h2 className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">
             Riwayat Transaksi
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
             Periode: {formatMonthLabel(selectedMonth)}
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => onOpenExportImport('export')}
-            aria-label="Ekspor Transaksi"
-            className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-              theme === 'dark'
-                ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
-                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-            }`}
-            title="Ekspor JSON / CSV"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Ekspor</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onOpenExportImport('import')}
-            aria-label="Impor Transaksi"
-            className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-              theme === 'dark'
-                ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
-                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-            }`}
-            title="Impor JSON / CSV"
-          >
-            <Upload className="w-3.5 h-3.5 text-blue-500" />
-            <span>Impor</span>
-          </button>
+
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={onOpenVoiceModal}
             aria-label="Catat Suara"
-            className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
-            title="Catat Suara"
+            className="h-9 px-3 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/20 font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-all cursor-pointer"
           >
-            <Mic className="w-4 h-4" />
+            <Mic className="w-3.5 h-3.5" />
+            <span>Suara AI</span>
           </button>
           <button
             type="button"
             onClick={() => onOpenManualModal()}
-            className="px-3 py-1.5 rounded-xl bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm hover:bg-emerald-600 transition-all cursor-pointer"
+            className="h-9 px-3 rounded-xl bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-xs hover:bg-emerald-600 transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Tambah</span>
@@ -126,20 +99,52 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="space-y-2">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari transaksi, kopi, gaji..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full pl-10 pr-4 py-2.5 rounded-2xl text-xs border transition-colors ${
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari transaksi, kopi, gaji..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full h-10 pl-10 pr-4 rounded-xl text-xs border transition-colors ${
+                theme === 'dark'
+                  ? 'bg-slate-900 border-slate-800 text-white'
+                  : 'bg-white border-slate-200 text-slate-900'
+              } outline-none focus:border-emerald-500`}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onOpenExportImport('export')}
+            aria-label="Ekspor Transaksi"
+            className={`h-10 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
               theme === 'dark'
-                ? 'bg-slate-900 border-slate-800 text-white'
-                : 'bg-white border-slate-200 text-slate-900'
-            } outline-none focus:border-emerald-500`}
-          />
+                ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+            }`}
+            title="Ekspor JSON / CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Ekspor</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onOpenExportImport('import')}
+            aria-label="Impor Transaksi"
+            className={`h-10 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+              theme === 'dark'
+                ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+            }`}
+            title="Impor JSON / CSV"
+          >
+            <Upload className="w-3.5 h-3.5 text-blue-500" />
+            <span>Impor</span>
+          </button>
         </div>
 
         {/* Filter Segmented Controls */}
@@ -147,9 +152,9 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
           <button
             type="button"
             onClick={() => setFilterType('all')}
-            className={`px-3 py-1.5 rounded-xl font-semibold shrink-0 transition-all cursor-pointer ${
+            className={`h-8 px-3 rounded-xl font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
               filterType === 'all'
-                ? 'bg-emerald-500 text-white shadow-xs'
+                ? 'bg-emerald-500 text-white shadow-2xs'
                 : theme === 'dark'
                 ? 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                 : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
@@ -160,9 +165,9 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
           <button
             type="button"
             onClick={() => setFilterType('expense')}
-            className={`px-3 py-1.5 rounded-xl font-semibold shrink-0 transition-all cursor-pointer ${
+            className={`h-8 px-3 rounded-xl font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
               filterType === 'expense'
-                ? 'bg-rose-500 text-white shadow-xs'
+                ? 'bg-rose-500 text-white shadow-2xs'
                 : theme === 'dark'
                 ? 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                 : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
@@ -173,9 +178,9 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
           <button
             type="button"
             onClick={() => setFilterType('income')}
-            className={`px-3 py-1.5 rounded-xl font-semibold shrink-0 transition-all cursor-pointer ${
+            className={`h-8 px-3 rounded-xl font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
               filterType === 'income'
-                ? 'bg-emerald-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-2xs'
                 : theme === 'dark'
                 ? 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                 : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
@@ -189,10 +194,10 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
             aria-label="Filter berdasarkan Kategori"
-            className={`px-2.5 py-1.5 rounded-xl font-medium shrink-0 border text-xs cursor-pointer ${
+            className={`h-8 px-2.5 rounded-xl font-medium shrink-0 border text-xs cursor-pointer outline-none ${
               theme === 'dark'
                 ? 'bg-slate-900 border-slate-800 text-slate-300'
-                : 'bg-white border-slate-300 text-slate-700'
+                : 'bg-white border-slate-200 text-slate-700'
             }`}
           >
             <option value="all">Semua Kategori</option>
@@ -207,13 +212,13 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
 
       {/* Filtered Summary Card */}
       <div
-        className={`p-3 rounded-2xl border text-xs grid grid-cols-2 gap-2 ${
+        className={`p-3.5 rounded-2xl border text-xs grid grid-cols-2 gap-3 ${
           theme === 'dark' ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
         }`}
       >
         <div>
           <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-            Total Pengeluaran Filter:
+            Total Pengeluaran Filter
           </span>
           <span className="font-bold text-rose-600 dark:text-rose-400 tabular-nums">
             {formatRupiah(totalFilteredExpense)}
@@ -221,7 +226,7 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
         </div>
         <div>
           <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-            Total Pemasukan Filter:
+            Total Pemasukan Filter
           </span>
           <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
             {formatRupiah(totalFilteredIncome)}
@@ -239,7 +244,7 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
                 : 'bg-slate-50 border-slate-200 text-slate-500'
             }`}
           >
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
               Tidak ada transaksi yang cocok
             </p>
             <p className="text-[11px] mt-1 text-slate-500 dark:text-slate-400">
@@ -255,12 +260,12 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
                 className={`p-3 rounded-2xl border transition-all flex items-center justify-between group ${
                   theme === 'dark'
                     ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
+                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-xs shrink-0"
                     style={{ backgroundColor: cat?.color || '#64748b' }}
                   >
                     {tx.type === 'income' ? (
@@ -273,12 +278,12 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
                     <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate">
                       {tx.description}
                     </span>
-                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      <span>{tx.categoryName}</span>
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                      <span className="truncate">{tx.categoryName}</span>
                       <span aria-hidden="true">·</span>
-                      <span>{tx.date}</span>
+                      <span className="shrink-0">{tx.date}</span>
                       <span aria-hidden="true">·</span>
-                      <span className="uppercase font-semibold">{tx.paymentMethod}</span>
+                      <span className="uppercase font-semibold shrink-0">{tx.paymentMethod}</span>
                     </div>
                   </div>
                 </div>
@@ -294,8 +299,8 @@ export const TransactionListView: React.FC<TransactionListViewProps> = ({
                     >
                       {tx.type === 'income' ? '+' : '-'} {formatRupiah(tx.amount)}
                     </span>
-                    <span className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-semibold">
-                      {tx.classification}
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                      {formatClassificationLabel(tx.classification)}
                     </span>
                   </div>
 

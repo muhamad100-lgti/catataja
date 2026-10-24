@@ -3,12 +3,18 @@ import assert from 'node:assert/strict';
 import {
   formatRupiah,
   formatCompactRupiah,
-  getCurrentMonthKey,
   getPreviousMonthKey,
   calculateMonthlySummary,
   compareMonths,
-  generateSavingRecommendations,
+  generateLocalMonthlyAIAnalysis,
+  answerFinancialQuestionLocally,
 } from './finance';
+import { parseVoiceInput } from './voiceParser';
+import {
+  exportTransactionsToJson,
+  exportTransactionsToCsv,
+  parseImportedData,
+} from './dataTransfer';
 import { Transaction } from '../types';
 
 test('formatRupiah formats Indonesian currency with dot separators', () => {
@@ -116,14 +122,8 @@ test('compareMonths correctly computes differences between two months', () => {
   assert.equal(comp.expenseCurrent, 4500000);
   assert.equal(comp.expensePrevious, 3000000);
   assert.equal(comp.expenseDiff, 1500000);
-  assert.equal(comp.expenseDiffPct, 50); // +50% increase
+  assert.equal(comp.expenseDiffPct, 50);
 });
-
-import {
-  exportTransactionsToJson,
-  exportTransactionsToCsv,
-  parseImportedData,
-} from './dataTransfer';
 
 test('exportTransactionsToJson and parseImportedData round-trip JSON transactions', () => {
   const sample: Transaction[] = [
@@ -189,3 +189,57 @@ test('exportTransactionsToCsv and parseImportedData round-trip CSV transactions'
   assert.equal(parsed.transactions[0].description, 'Kopi Kenangan, Mall');
 });
 
+test('parseVoiceInput extracts Indonesian natural language sentences accurately offline', () => {
+  const kopi = parseVoiceInput('Beli kopi kenangan 25 ribu pakai QRIS');
+  assert.equal(kopi.type, 'expense');
+  assert.equal(kopi.amount, 25000);
+  assert.equal(kopi.category, 'kopi_jajan');
+  assert.equal(kopi.paymentMethod, 'qris');
+
+  const gaji = parseVoiceInput('Gaji bulanan masuk 8 juta 500 ribu transfer');
+  assert.equal(gaji.type, 'income');
+  assert.equal(gaji.amount, 8500000);
+  assert.equal(gaji.category, 'gaji');
+  assert.equal(gaji.paymentMethod, 'transfer');
+});
+
+test('generateLocalMonthlyAIAnalysis and answerFinancialQuestionLocally work offline for GitHub Pages', () => {
+  const sample: Transaction[] = [
+    {
+      id: 'tx-ai-1',
+      type: 'income',
+      amount: 7000000,
+      category: 'gaji',
+      categoryName: 'Gaji Utama',
+      description: 'Gaji',
+      date: '2026-10-01',
+      paymentMethod: 'transfer',
+      classification: 'savings',
+      createdAt: 1000,
+      updatedAt: 1000,
+    },
+    {
+      id: 'tx-ai-2',
+      type: 'expense',
+      amount: 1500000,
+      category: 'makanan',
+      categoryName: 'Makanan & Minuman',
+      description: 'Makan',
+      date: '2026-10-04',
+      paymentMethod: 'qris',
+      classification: 'needs',
+      createdAt: 2000,
+      updatedAt: 2000,
+    },
+  ];
+
+  const analysis0 = generateLocalMonthlyAIAnalysis(sample, '2026-10', 0);
+  const analysis1 = generateLocalMonthlyAIAnalysis(sample, '2026-10', 1);
+  assert.ok(analysis0.healthScore > 70);
+  assert.notEqual(analysis0.perspectiveTitle, analysis1.perspectiveTitle);
+
+  const salarySim = answerFinancialQuestionLocally('Simulasi bagi gaji 6 juta', sample, '2026-10');
+  assert.ok(salarySim.includes('Rp 3.000.000'));
+  assert.ok(salarySim.includes('Rp 1.800.000'));
+  assert.ok(salarySim.includes('Rp 1.200.000'));
+});
